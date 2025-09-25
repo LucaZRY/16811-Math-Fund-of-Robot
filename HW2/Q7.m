@@ -11,3 +11,4 @@ fimplicit(q==0, [-1 3 -1 3], 'LineWidth',1.8);
 axis equal; xlabel('x'); ylabel('y');
 legend('p(x,y)=0','q(x,y)=0','Location','best');
 title('Zero-contours of p and q');
+
