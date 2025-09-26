@@ -1,6 +1,4 @@
-function q8_part_b()
-
-    clc;
+function q8_part_b(start_point)
 
     paths = load('paths.txt');      
     assert(mod(size(paths,1),2)==0, 'paths must have alternating x/y rows.');
@@ -9,35 +7,29 @@ function q8_part_b()
     fire_radius = 1.5;
 
     %start_point = [0.8, 1.8];
-    % start_point = [2.2, 1.0];
-    start_point = [2.7, 1.4];
+    %start_point = [2.2, 1.0];
+    % start_point = [2.7, 1.4];
 
     [up_x, up_y, down_x, down_y] = split_paths_up_down(paths, fire_center);
 
-    % ---------- Pick 3 paths on the side whose starts better surround the start ----------
     [path_set_x, path_set_y] = pick_path_triple(up_x, up_y, down_x, down_y, start_point);
 
-    % ---------- Compute barycentric weights for the start point ----------
     p1 = [path_set_x(1,1), path_set_y(1,1)];
     p2 = [path_set_x(2,1), path_set_y(2,1)];
     p3 = [path_set_x(3,1), path_set_y(3,1)];
     alpha = get_alpha(start_point, p1, p2, p3);
 
-    % ---------- Blend the 3 paths to get the discrete new path ----------
     [new_path_x, new_path_y] = blend_paths(alpha, path_set_x, path_set_y);
 
-    % ---------- Continuous-time interpolation over [0,1] ----------
     t = 0.01:0.01:0.99;
     interp_x = polyline_interp(new_path_x, t);
     interp_y = polyline_interp(new_path_y, t);
 
-    % ---------- Obstacle (ring) check ----------
     d2 = (interp_x - fire_center(1)).^2 + (interp_y - fire_center(2)).^2;
     if any(d2 < fire_radius^2)
         warning('Interpolated path touches the ring of fire.');
     end
 
-    % ---------- Plot ----------
     figure('Name','Q8(b) Interpolation','Color','w'); hold on; axis equal; grid on;
     title(sprintf('Interpolated Path   alpha = [%.3f, %.3f, %.3f]', alpha(1), alpha(2), alpha(3)));
     xlabel('x'); ylabel('y');
@@ -46,59 +38,18 @@ function q8_part_b()
     th = linspace(0, 2*pi, 360);
     plot(fire_center(1) + fire_radius*cos(th), fire_center(2) + fire_radius*sin(th), 'm-', 'LineWidth', 1.25);
 
-    % chosen three original paths
     cols = {'b--','g--','c--'};
     for i = 1:3
         plot(path_set_x(i,:), path_set_y(i,:), cols{i}, 'LineWidth', 1.0);
         plot(path_set_x(i,1), path_set_y(i,1), 'ko', 'MarkerSize', 5, 'MarkerFaceColor', 'k');
     end
 
-    % interpolated path & start
     plot(interp_x, interp_y, 'r-', 'LineWidth', 2.0);
     plot(start_point(1), start_point(2), 'rx', 'MarkerSize', 10, 'LineWidth', 1.5);
 
     legend({'Ring of fire','Path 1','Path 2','Path 3','Interpolated'}, 'Location','bestoutside');
 end
 
-
-% function [left_x, left_y, right_x, right_y] = split_paths_left_right(paths, center)
-% % Split all paths into LEFT vs RIGHT of the ring center based on the
-% % path point closest to the center (robust against crossings).
-% 
-%     [m, n] = size(paths);
-%     x = paths(1:2:m, :);   % (#paths) x n
-%     y = paths(2:2:m, :);
-% 
-%     kPaths = size(x,1);
-%     left_idxs  = [];
-%     right_idxs = [];
-% 
-%     for r = 1:kPaths
-%         X = x(r, :);
-%         Y = y(r, :);
-%         % closest point on path to center
-%         difX = X - center(1);
-%         difY = Y - center(2);
-%         [~, idxMin] = min(difX.^2 + difY.^2);
-%         if X(idxMin) < center(1)
-%             left_idxs(end+1) = r; 
-%         else
-%             right_idxs(end+1) = r; 
-%         end
-%     end
-% 
-%     left_x  = x(left_idxs, :);
-%     left_y  = y(left_idxs, :);
-%     right_x = x(right_idxs, :);
-%     right_y = y(right_idxs, :);
-% 
-%     %quick visualization of split
-%     figure('Name','Left/Right Split','Color','w');
-%     subplot(1,2,1); hold on; axis equal; title('LEFT of ring'); grid on;
-%     for i = 1:size(left_x,1), plot(left_x(i,:), left_y(i,:)); end
-%     subplot(1,2,2); hold on; axis equal; title('RIGHT of ring'); grid on;
-%     for i = 1:size(right_x,1), plot(right_x(i,:), right_y(i,:)); end
-% end
 
 function [up_x, up_y, down_x, down_y] = split_paths_up_down(paths, center)
 
@@ -116,37 +67,32 @@ function [up_x, up_y, down_x, down_y] = split_paths_up_down(paths, center)
     down_x = X(down_rows, :);
     down_y = Y(down_rows, :);
 
-    figure('Name','Up/Down Split','Color','w');
-    subplot(1,2,1); hold on; axis equal; title('LEFT of ring'); grid on;
-    for i = 1:size(up_x,1), plot(up_x(i,:), up_y(i,:)); end
-    subplot(1,2,2); hold on; axis equal; title('RIGHT of ring'); grid on;
-    for i = 1:size(down_x,1), plot(down_x(i,:), down_y(i,:)); end
+    % figure('Name','Up/Down Split','Color','w');
+    % subplot(1,2,1); hold on; axis equal; title('LEFT of ring'); grid on;
+    % for i = 1:size(up_x,1), plot(up_x(i,:), up_y(i,:)); end
+    % subplot(1,2,2); hold on; axis equal; title('RIGHT of ring'); grid on;
+    % for i = 1:size(down_x,1), plot(down_x(i,:), down_y(i,:)); end
 end
 
 
 
+function [path_set_x, path_set_y] = pick_path_triple(up_x, up_y, down_x, down_y, sp)
 
+    side_center_left  = [mean(up_x(:,1)),  mean(up_y(:,1))];
+    side_center_right = [mean(down_x(:,1)), mean(down_y(:,1))];
 
-function [path_set_x, path_set_y] = pick_path_triple(left_x, left_y, right_x, right_y, sp)
-% Pick three paths (on one side) whose start-points form a triangle containing sp.
-% Heuristic: choose the side whose mean start is closer to sp; then search triangles.
-
-    % decide which side likely surrounds the start
-    side_center_left  = [mean(left_x(:,1)),  mean(left_y(:,1))];
-    side_center_right = [mean(right_x(:,1)), mean(right_y(:,1))];
-
-    if isempty(left_x)
-        use_left = false;
-    elseif isempty(right_x)
-        use_left = true;
+    if isempty(up_x)
+        use_up = false;
+    elseif isempty(down_x)
+        use_up = true;
     else
-        use_left = sum((sp - side_center_left).^2) <= sum((sp - side_center_right).^2);
+        use_up = sum((sp - side_center_left).^2) <= sum((sp - side_center_right).^2);
     end
 
-    if use_left
-        px = left_x;  py = left_y;
+    if use_up
+        px = up_x;  py = up_y;
     else
-        px = right_x; py = right_y;
+        px = down_x; py = down_y;
     end
 
     m = size(px, 1);
@@ -154,7 +100,6 @@ function [path_set_x, path_set_y] = pick_path_triple(left_x, left_y, right_x, ri
         error('Not enough paths on the chosen side.');
     end
 
-    % enumerate triangles with degeneracy filter & inside test
     candidates = [];
     for i = 1:m-2
         for j = i+1:m-1
@@ -164,7 +109,7 @@ function [path_set_x, path_set_y] = pick_path_triple(left_x, left_y, right_x, ri
                 p3 = [px(k,1), py(k,1)];
                 if triangle_area(p1,p2,p3) <= 1e-10, continue; end
                 if point_in_triangle(sp, p1, p2, p3, 1e-12)
-                    candidates = [candidates; i, j, k]; %#ok<AGROW>
+                    candidates = [candidates; i, j, k];
                 end
             end
         end
@@ -174,7 +119,6 @@ function [path_set_x, path_set_y] = pick_path_triple(left_x, left_y, right_x, ri
         error('No valid triangle contains the start point on the chosen side.');
     end
 
-    % pick the candidate whose centroid is closest to sp
     nC = size(candidates, 1);
     dists = zeros(nC,1);
     for c = 1:nC
@@ -196,46 +140,15 @@ function [path_set_x, path_set_y] = pick_path_triple(left_x, left_y, right_x, ri
 end
 
 
-% function is_in = is_in_triangle(sp, p1, p2, p3, tol)
-% 
-%     if nargin < 5, tol = 1e-12; end
-%     A = [ (p2 - p1); (p3 - p1) ]';     
-%     if abs(det(A)) < tol
-%         is_in = false;               
-%         return;
-%     end
-%     uv = A \ (sp - p1)';               % [u; v]
-%     u = uv(1); v = uv(2);
-%     is_in = (u >= -tol) && (v >= -tol) && (u + v <= 1 + tol);
-% end
-
-
 function [inside, alpha] = point_in_triangle(p, p1, p2, p3, tol)
-%POINT_IN_TRIANGLE  Barycentric test via 3x3 Av=b.
-%   Given triangle vertices p1, p2, p3 (each [x;y]) and a query point p ([x;y]),
-%   solve
-%        [x1 x2 x3]   [a1]   [px]
-%    A = [y1 y2 y3],  [a2] = [py]
-%        [ 1  1  1]   [a3]   [ 1]
-%   and check a1,a2,a3 >= 0 and a1+a2+a3 = 1 (within tolerance).
-%
-%   Inputs:
-%     p, p1, p2, p3 : 2x1 column vectors [x;y]
-%     tol (optional): numeric tolerance (default 1e-12)
-%
-%   Outputs:
-%     inside : true if p is inside or on the boundary of the triangle
-%     alpha  : [a1; a2; a3] barycentric weights (sum≈1). NaNs if degenerate.
 
     if nargin < 5, tol = 1e-12; end
 
-    % Build A and b
     A = [p1(1) p2(1) p3(1);
          p1(2) p2(2) p3(2);
          1      1      1   ];
     b = [p(1); p(2); 1];
 
-    % Degeneracy check: det(A) = 2 * (signed area). Near zero ⇒ collinear vertices.
     detA = det(A);
     if abs(detA) < tol
         inside = false;
@@ -243,16 +156,13 @@ function [inside, alpha] = point_in_triangle(p, p1, p2, p3, tol)
         return;
     end
 
-    % Solve Av=b for barycentric weights
     alpha = A \ b;
 
-    % Constraint checks with tolerance
-    nonneg = all(alpha >= -tol);             % allow tiny negatives due to FP error
-    sum1   = abs(sum(alpha) - 1) <= 1e-9;    % should be ~1 already
+    nonneg = all(alpha >= -tol);             
+    sum1   = abs(sum(alpha) - 1) <= 1e-9;    
 
     inside = nonneg && sum1;
 
-    % Cosmetic clamp/renormalize if inside
     if inside
         alpha(alpha < 0 & alpha > -tol) = 0;
         s = sum(alpha);
@@ -262,44 +172,35 @@ function [inside, alpha] = point_in_triangle(p, p1, p2, p3, tol)
     end
 end
 
-
-
 function alpha = get_alpha(sp, p1, p2, p3)
-% Return barycentric weights [a1; a2; a3] for point sp in triangle p1,p2,p3.
 
-    M = [ (p1 - p3); (p2 - p3) ]';     % 2x2
-    b = (sp - p3)';                    % 2x1
+    M = [ (p1 - p3); (p2 - p3) ]';     
+    b = (sp - p3)';                   
     if abs(det(M)) < 1e-14
         error('get_alpha: degenerate triangle.');
     end
-    ab = M \ b;                        % [a1; a2]
+    ab = M \ b;                     
     alpha = [ab(1); ab(2); 1 - ab(1) - ab(2)];
 end
 
 
 function [nx, ny] = blend_paths(alpha, path_set_x, path_set_y)
-% Convex combination of three paths (each 1xN), alpha is 3x1.
-
-    nx = alpha' * path_set_x;          % 1xN
-    ny = alpha' * path_set_y;          % 1xN
+    nx = alpha' * path_set_x;          
+    ny = alpha' * path_set_y;         
 end
 
 
 function y = polyline_interp(data, t)
-% Linear interpolation along a polyline sampled at uniform steps over [0,1].
-% data: 1xN samples; t: 1xM in [0,1].
 
     N = numel(data);
-    s = (N - 1) * t;                   % position in sample space
-    k = floor(s) + 1;                  % left index
-    k(k >= N) = N - 1;                 % clamp so k+1 is valid
-    frac = s - floor(s);               % local fraction in [0,1)
+    s = (N - 1) * t;                   
+    k = floor(s) + 1;                 
+    k(k >= N) = N - 1;                
+    frac = s - floor(s);              
     y = data(k) + (data(k+1) - data(k)) .* frac;
 end
 
 
 function A = triangle_area(p, q, r)
-% Twice the signed area magnitude / 2 → area of triangle pqr.
-
     A = 0.5 * abs( (q(1)-p(1))*(r(2)-p(2)) - (q(2)-p(2))*(r(1)-p(1)) );
 end

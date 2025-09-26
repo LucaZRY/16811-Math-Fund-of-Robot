@@ -1,5 +1,5 @@
-f  = @(x) tan(x) - x;     % function
-fp = @(x) tan(x).^2;      % derivative
+f  = @(x) tan(x) - x;     
+fp = @(x) tan(x).^2;      
 
 x = linspace(13, 17.5, 1000);
 y = f(x);
@@ -19,9 +19,6 @@ x_high = newton(f, fp, 17.25);
 fprintf('x_low  = %.15f\n', x_low);
 fprintf('x_high = %.15f\n', x_high);
 
-
-
-% Newton's method
 function root = newton(f, fp, x0, tol, max_iter)
     if nargin < 4, tol = 1e-12; end
     if nargin < 5, max_iter = 50; end
