@@ -65,6 +65,36 @@ path = path_init;
 %% Optimize it...
 % your code comes here
 
+%% Optimize it...  (Part a: obstacle cost only)
+scale = 0.1;
+max_iter = 200;
+
+for iter = 1:max_iter
+    for i = 2:tt-1
+        x = path(i,1); y = path(i,2);
+        % skip if out of grid bounds
+        if x < 1 || x > N-1 || y < 1 || y > N-1
+            continue;
+        end
+        % bilinear interpolation for gx, gy
+        interp_x1 = (x - fix(x))*(gx(fix(x)+1, fix(y)) - gx(fix(x), fix(y))) + gx(fix(x), fix(y));
+        interp_x2 = (x - fix(x))*(gx(fix(x)+1, fix(y)+1) - gx(fix(x), fix(y)+1)) + gx(fix(x), fix(y)+1);
+        grad_x = (y - fix(y))*(interp_x2 - interp_x1) + interp_x1;
+
+        interp_y1 = (x - fix(x))*(gy(fix(x)+1, fix(y)) - gy(fix(x), fix(y))) + gy(fix(x), fix(y));
+        interp_y2 = (x - fix(x))*(gy(fix(x)+1, fix(y)+1) - gy(fix(x), fix(y)+1)) + gy(fix(x), fix(y)+1);
+        grad_y = (y - fix(y))*(interp_y2 - interp_y1) + interp_y1;
+
+        % update path point
+        path(i,1) = x - scale * grad_x;
+        path(i,2) = y - scale * grad_y;
+    end
+    % optionally visualize every few iterations
+    if mod(iter,50)==0
+        fprintf('Iteration %d complete\n', iter);
+    end
+end
+
 
 
 %% plot the trajectories
